@@ -3,27 +3,45 @@
 
 #include <iostream>
 #include <string>
+#include <thread>
 
-struct EmptyMessage
-{};
-
-struct StringMessage
+enum OperationType
 {
-	const std::string str;
+};
 
-	StringMessage(const std::string &s)
-		: str(s)
+struct DuoMessage
+{
+	int a;
+	int b;
+
+	DuoMessage(int _a, int _b)
+		: a(_a), b(_b)
 	{}
 };
 
-struct NumberMessage
+struct TrioMessage
 {
-	int number;
+	int a;
+	int b;
+	int c;
 
-	NumberMessage(int i)
-	: number(i)
+	TrioMessage(int _a, int _b, int _c)
+		: a(_a), b(_b), c(_c)
 	{}
 };
+
+struct QuatroMessage
+{
+	int a;
+	int b;
+	int c;
+	int d;
+
+	QuatroMessage(int _a, int _b, int _c, int _d)
+		: a(_a), b(_b), c(_c), d(_d)
+	{}
+};
+
 
 class Test
 {
@@ -38,17 +56,17 @@ public:
 			for (;;)
 			{
 				_worker.wait()
-					.handle<StringMessage>([&](const StringMessage& msg)
+					.handle<DuoMessage>([&](const DuoMessage& msg)
 				{
-					std::cout << "String message : " << msg.str << std::endl;
+					auto res = std::sqrt(msg.a) * std::acos(msg.b);
 				})
-					.handle<NumberMessage>([&](const NumberMessage& msg)
+					.handle<TrioMessage>([&](const TrioMessage& msg)
 				{
-					std::cout << "Number message : " << msg.number << std::endl;
+					auto res = std::sqrt(msg.a) * std::acos(msg.b) * std::asin(msg.c);
 				})
-					.handle<EmptyMessage>([&](const EmptyMessage& msg)
+					.handle<QuatroMessage>([&](const QuatroMessage& msg)
 				{
-					std::cout << "Empty message !" << std::endl;
+					auto res = std::sqrt(msg.a) * std::acos(msg.b) * std::asin(msg.c) * std::sin(msg.d);
 				});
 			}
 		}
@@ -59,24 +77,46 @@ public:
 
 	void runEmitter()
 	{
-		_emitter.send(StringMessage("Ceci est un message string"));
-		_emitter.send(EmptyMessage());
-		_emitter.send(EmptyMessage());
-		_emitter.send(EmptyMessage());
-		for (auto i = 0; i < 10; ++i)
+		std::srand(42);
+		for (auto i = 0; i < 100000; ++i)
 		{
 			if (i % 2)
 			{
-				_emitter.send(NumberMessage(i));
+				_emitter.send(DuoMessage(rand(), rand()));
+			}
+			else if (i % 3)
+			{
+				_emitter.send(TrioMessage(rand(), rand(), rand()));
 			}
 			else
-				_emitter.send(StringMessage("Coucou " + std::to_string(i)));
+				_emitter.send(QuatroMessage(rand(), rand(), rand(), rand()));
 		}
+		done();
 	}
+	
+	Test()
+	{
+		_emitter = _worker.operator TMQ::Emitter();
+	}
+
+	void done()
+	{
+		_emitter.send(TMQ::CloseQueue());
+	}
+
+	~Test()
+	{
+		done();
+	}
+
 };
 
 int main(void)
 {
-
+	Test test;
+	std::thread main(&Test::runEmitter, &test);
+	std::thread worker(&Test::runWorker, &test);
+	main.join();
+	worker.join();
 	return 0;
 }
