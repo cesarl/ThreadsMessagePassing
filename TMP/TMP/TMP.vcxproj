@@ -116,11 +116,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\common\message.hpp" />
     <ClInclude Include="src\dispatcher.hpp" />
     <ClInclude Include="src\message.hpp" />
     <ClInclude Include="src\queue.hpp" />
     <ClInclude Include="src\emitter.hpp" />
     <ClInclude Include="src\receiver.hpp" />
+    <ClInclude Include="src\singleBuffered\dispatcher.hpp" />
+    <ClInclude Include="src\singleBuffered\emitter.hpp" />
+    <ClInclude Include="src\singleBuffered\queue.hpp" />
+    <ClInclude Include="src\singleBuffered\receiver.hpp" />
+    <ClInclude Include="src\singleBuffered\templateDispatcher.hpp" />
     <ClInclude Include="src\templateDispatcher.hpp" />
   </ItemGroup>
   <ItemGroup>

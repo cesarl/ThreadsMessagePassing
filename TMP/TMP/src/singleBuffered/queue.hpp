@@ -5,7 +5,7 @@
 #include <queue>
 #include <memory>
 
-#include "message.hpp"
+#include "../common/message.hpp"
 
 namespace TMQ
 {

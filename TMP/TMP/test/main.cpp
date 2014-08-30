@@ -1,5 +1,5 @@
-#include "../src/templateDispatcher.hpp"
-#include "../src/receiver.hpp"
+#include "../src/singleBuffered/templateDispatcher.hpp"
+#include "../src/singleBuffered/receiver.hpp"
 
 #include <iostream>
 #include <string>
