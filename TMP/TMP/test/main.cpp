@@ -1,6 +1,9 @@
 #include "../src/singleBuffered/templateDispatcher.hpp"
 #include "../src/singleBuffered/receiver.hpp"
 
+#include "../src/doubleBuffered/queue.hpp"
+#include "../src/doubleBuffered/queueWrapper.hpp"
+
 #include <iostream>
 #include <string>
 #include <thread>
@@ -117,17 +120,61 @@ public:
 
 };
 
+struct MessageDb1 : TMQ::PtrQueueType::Base
+{
+	int i = 42;
+};
+
+void DbWorker(TMQ::QueueWrapper<TMQ::PtrQueueType::Base> &queue)
+{
+	auto ii = 0;
+	while (ii++ < 100)
+	{
+		TMQ::PtrQueue<TMQ::PtrQueueType::Base> q;
+		queue.getReadableQueue(q);
+		while (!q.empty())
+		{
+			auto v = q.pop();
+			std::cout << ((MessageDb1*)(v))->i << std::endl;
+		}
+	}
+}
+
+void DbMain(TMQ::QueueWrapper<TMQ::PtrQueueType::Base> &queue)
+{
+	auto ii = 0;
+	while (ii++ < 100)
+	{
+		auto &q = queue.getWritableQueue();
+		for (auto i = 0; i < 10; ++i)
+			q.push<MessageDb1>();
+		queue.releaseReadability();
+	}
+}
+
 int main(void)
 {
-	auto start = std::chrono::high_resolution_clock::now();
-	Test test;
-	std::thread main(&Test::runEmitter, &test);
-	std::thread worker(&Test::runWorker, &test);
+	//auto start = std::chrono::high_resolution_clock::now();
+	//Test test;
+	//std::thread main(&Test::runEmitter, &test);
+	//std::thread worker(&Test::runWorker, &test);
+	//main.join();
+	//worker.join();
+	//auto end = std::chrono::high_resolution_clock::now();
+	//auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+	//std::ofstream a_file("LOG.txt", std::ofstream::app);
+	//a_file << "Duration : " << std::to_string(dur.count()) << std::endl;
+
+
+	//------------------------------
+
+	TMQ::QueueWrapper<TMQ::PtrQueueType::Base> queue;
+
+	std::thread main(DbMain, std::ref(queue));
+	std::thread worker(DbWorker, std::ref(queue));
+	queue.launch();
 	main.join();
 	worker.join();
-	auto end = std::chrono::high_resolution_clock::now();
-	auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-	std::ofstream a_file("LOG.txt", std::ofstream::app);
-	a_file << "Duration : " << std::to_string(dur.count()) << std::endl;
+
 	return 0;
 }

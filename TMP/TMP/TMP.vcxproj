@@ -118,6 +118,8 @@
   <ItemGroup>
     <ClInclude Include="src\common\message.hpp" />
     <ClInclude Include="src\dispatcher.hpp" />
+    <ClInclude Include="src\doubleBuffered\queue.hpp" />
+    <ClInclude Include="src\doubleBuffered\queueWrapper.hpp" />
     <ClInclude Include="src\message.hpp" />
     <ClInclude Include="src\queue.hpp" />
     <ClInclude Include="src\emitter.hpp" />
