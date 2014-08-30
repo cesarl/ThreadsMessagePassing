@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include <fstream>
 
 enum OperationType
 {
@@ -78,18 +79,23 @@ public:
 	void runEmitter()
 	{
 		std::srand(42);
-		for (auto i = 0; i < 100000; ++i)
+		for (auto i = 0; i < 1000000; ++i)
 		{
+			auto res = std::sqrt(rand()) * std::acos(rand()) * std::asin(rand()) * std::sin(rand());
 			if (i % 2)
 			{
-				_emitter.send(DuoMessage(rand(), rand()));
+				_emitter.send(DuoMessage(res, rand()));
 			}
 			else if (i % 3)
 			{
-				_emitter.send(TrioMessage(rand(), rand(), rand()));
+
+				_emitter.send(TrioMessage(res, rand(), rand()));
 			}
 			else
-				_emitter.send(QuatroMessage(rand(), rand(), rand(), rand()));
+			{
+
+				_emitter.send(QuatroMessage(res, rand(), rand(), rand()));
+			}
 		}
 		done();
 	}
@@ -113,10 +119,15 @@ public:
 
 int main(void)
 {
+	auto start = std::chrono::high_resolution_clock::now();
 	Test test;
 	std::thread main(&Test::runEmitter, &test);
 	std::thread worker(&Test::runWorker, &test);
 	main.join();
 	worker.join();
+	auto end = std::chrono::high_resolution_clock::now();
+	auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+	std::ofstream a_file("LOG.txt", std::ofstream::app);
+	a_file << "Duration : " << std::to_string(dur.count()) << std::endl;
 	return 0;
 }

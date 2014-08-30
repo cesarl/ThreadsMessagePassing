@@ -32,13 +32,10 @@ namespace TMQ
 
 		bool dispatch(const std::shared_ptr<MessageBase>& msg)
 		{
-			if (Message<_Message>* wrapper = dynamic_cast<Message<_Message>*>(msg.get()))
-			{
-				_function(wrapper->_data);
-				return true;
-			}
-			else
+			if (msg->uid != Message<_Message>::getId())
 				return _previous->dispatch(msg);
+			_function(static_cast<Message<_Message>*>(msg.get())->_data);
+			return true;
 		}
 
 	public:

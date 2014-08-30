@@ -33,7 +33,8 @@ namespace TMQ
 
 		bool dispatch(const std::shared_ptr<MessageBase> &msg)
 		{
-			if (dynamic_cast<Message<CloseQueue>*>(msg.get()))
+			if (msg->uid == Message<CloseQueue>::getId()
+				&& static_cast<Message<CloseQueue>*>(msg.get()))
 			{
 				throw CloseQueue();
 			}
