@@ -12,14 +12,20 @@ namespace TMQ
 		std::mutex _mutex;
 		std::condition_variable _readCondition;
 		std::condition_variable _writeCondition;
+		bool _readable;
+		bool _writable;
+
 
 	public:
 		QueueWrapper()
+			: _readable(false)
+			, _writable(false)
 		{
 		}
 
 		void launch()
 		{
+			_writable = true;
 			_writeCondition.notify_one();
 		}
 
@@ -31,10 +37,13 @@ namespace TMQ
 		void releaseReadability()
 		{
 			std::unique_lock<std::mutex> lock(_mutex);
-			_writeCondition.wait(lock);
+			_writeCondition.wait(lock, [&](){return _writable; });
+			_readable = false;
 			_copy = _queue;
-			_readCondition.notify_one();
+			_queue.clear();
+			_readable = true;
 			lock.unlock();
+			_readCondition.notify_one();
 		}
 
 		PtrQueue<QueueType> &getWritableQueue()
@@ -45,10 +54,13 @@ namespace TMQ
 		void getReadableQueue(PtrQueue<QueueType> &queue)
 		{
 			std::unique_lock<std::mutex> lock(_mutex);
-			_readCondition.wait(lock);
+			_writable = false;
+			_readCondition.wait(lock, [&](){return _readable; });
 			queue = _copy;
-			_writeCondition.notify_one();
+			_copy.clear();
+			_writable = true;
 			lock.unlock();
+			_writeCondition.notify_one();
 		}
 	};
 }

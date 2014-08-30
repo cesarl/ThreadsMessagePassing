@@ -123,14 +123,14 @@ public:
 struct MessageDb1 : TMQ::PtrQueueType::Base
 {
 	int i = 42;
+	MessageDb1(int _i) : i(_i){}
 };
 
 void DbWorker(TMQ::QueueWrapper<TMQ::PtrQueueType::Base> &queue)
 {
-	auto ii = 0;
-	while (ii++ < 100)
+	TMQ::PtrQueue<TMQ::PtrQueueType::Base> q;
+	while (true)
 	{
-		TMQ::PtrQueue<TMQ::PtrQueueType::Base> q;
 		queue.getReadableQueue(q);
 		while (!q.empty())
 		{
@@ -143,12 +143,15 @@ void DbWorker(TMQ::QueueWrapper<TMQ::PtrQueueType::Base> &queue)
 void DbMain(TMQ::QueueWrapper<TMQ::PtrQueueType::Base> &queue)
 {
 	auto ii = 0;
-	while (ii++ < 100)
+	while (ii < 10)
 	{
 		auto &q = queue.getWritableQueue();
-		for (auto i = 0; i < 10; ++i)
-			q.push<MessageDb1>();
+		for (auto i = 0; i < 1; ++i)
+		{
+			q.push<MessageDb1>(ii * 100000 + i);
+		}
 		queue.releaseReadability();
+		++ii;
 	}
 }
 
@@ -170,8 +173,8 @@ int main(void)
 
 	TMQ::QueueWrapper<TMQ::PtrQueueType::Base> queue;
 
-	std::thread main(DbMain, std::ref(queue));
 	std::thread worker(DbWorker, std::ref(queue));
+	std::thread main(DbMain, std::ref(queue));
 	queue.launch();
 	main.join();
 	worker.join();
