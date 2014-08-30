@@ -19,7 +19,7 @@ namespace TMQ
 		void push(const T &message)
 		{
 			std::lock_guard<std::mutex> lock(_mutex);
-			_queue.push(std::make_shared<Message<T>>(msg));
+			_queue.push(std::make_shared<Message<T>>(message));
 			_condition.notify_one(); 
 		}
 		std::shared_ptr<MessageBase> waitAndPop()

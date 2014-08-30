@@ -30,7 +30,7 @@ namespace TMQ
 			}
 		}
 
-		bool dispatch(const std::shared_ptr<Message>& msg)
+		bool dispatch(const std::shared_ptr<MessageBase>& msg)
 		{
 			if (Message<_Message>* wrapper = dynamic_cast<Message<_Message>*>(msg.get()))
 			{
@@ -67,7 +67,7 @@ namespace TMQ
 			return TemplateDispatcher<TemplateDispatcher, _Message_2, _Function_2>(_queue, this, std::forward<_Function_2>(function));
 		}
 
-		~TemplateDispatcher() noexcept(false)
+		~TemplateDispatcher()// noexcept(false)
 		{
 			if (!_chained)
 				waitAndDispatch();

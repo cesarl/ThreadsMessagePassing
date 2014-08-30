@@ -61,7 +61,7 @@ namespace TMQ
 				return TemplateDispatcher<Dispatcher, _Message, _Func>(_queue, this, std::forward<_Func>(f));
 		}
 
-		~Dispatcher() noexcept(false)
+		~Dispatcher()// noexcept(false)
 		{
 			if (!_chained)
 			{
