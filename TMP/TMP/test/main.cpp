@@ -146,7 +146,7 @@ void DbMain(TMQ::QueueWrapper<TMQ::PtrQueueType::Base> &queue)
 	while (ii < 10)
 	{
 		auto &q = queue.getWritableQueue();
-		for (auto i = 0; i < 1; ++i)
+		for (auto i = 0; i < 10; ++i)
 		{
 			q.push<MessageDb1>(ii * 100000 + i);
 		}
