@@ -54,9 +54,6 @@
     <ClInclude Include="src\doubleBuffered\queue.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\doubleBuffered\queueWrapper.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="test\main.cpp">

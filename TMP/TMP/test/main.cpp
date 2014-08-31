@@ -2,7 +2,6 @@
 #include "../src/singleBuffered/receiver.hpp"
 
 #include "../src/doubleBuffered/queue.hpp"
-#include "../src/doubleBuffered/queueWrapper.hpp"
 
 #include <iostream>
 #include <string>
@@ -126,9 +125,9 @@ struct MessageDb1
 	MessageDb1(int _i) : i(_i){}
 };
 
-void DbWorker(TMQ::Double::QueueWrapper &queue)
+void DbWorker(TMQ::Double::Queue &queue)
 {
-	TMQ::Double::Queue q;
+	TMQ::Double::PtrQueue q;
 	while (true)
 	{
 		queue.getReadableQueue(q);
@@ -140,15 +139,14 @@ void DbWorker(TMQ::Double::QueueWrapper &queue)
 	}
 }
 
-void DbMain(TMQ::Double::QueueWrapper &queue)
+void DbMain(TMQ::Double::Queue &queue)
 {
 	auto ii = 0;
 	while (ii < 10)
 	{
-		auto &q = queue.getWritableQueue();
 		for (auto i = 0; i < 10; ++i)
 		{
-			q.push<MessageDb1>(ii * 100000 + i);
+			queue.emplace<MessageDb1>(ii * 100000 + i);
 		}
 		queue.releaseReadability();
 		++ii;
@@ -171,7 +169,7 @@ int main(void)
 
 	//------------------------------
 
-	TMQ::Double::QueueWrapper queue;
+	TMQ::Double::Queue queue;
 
 	std::thread worker(DbWorker, std::ref(queue));
 	std::thread main(DbMain, std::ref(queue));
