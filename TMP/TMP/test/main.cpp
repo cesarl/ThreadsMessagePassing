@@ -126,9 +126,9 @@ struct MessageDb1
 	MessageDb1(int _i) : i(_i){}
 };
 
-void DbWorker(TMQ::QueueWrapper &queue)
+void DbWorker(TMQ::Double::QueueWrapper &queue)
 {
-	TMQ::PtrQueue q;
+	TMQ::Double::Queue q;
 	while (true)
 	{
 		queue.getReadableQueue(q);
@@ -140,7 +140,7 @@ void DbWorker(TMQ::QueueWrapper &queue)
 	}
 }
 
-void DbMain(TMQ::QueueWrapper &queue)
+void DbMain(TMQ::Double::QueueWrapper &queue)
 {
 	auto ii = 0;
 	while (ii < 10)
@@ -171,7 +171,7 @@ int main(void)
 
 	//------------------------------
 
-	TMQ::QueueWrapper queue;
+	TMQ::Double::QueueWrapper queue;
 
 	std::thread worker(DbWorker, std::ref(queue));
 	std::thread main(DbMain, std::ref(queue));
