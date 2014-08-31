@@ -49,8 +49,8 @@ struct QuatroMessage
 
 class Test
 {
-	TMQ::Receiver _worker;
-	TMQ::Emitter _emitter;
+	TMQ::Single::Receiver _worker;
+	TMQ::Single::Emitter _emitter;
 
 public:
 	void runWorker()
@@ -74,7 +74,7 @@ public:
 				});
 			}
 		}
-		catch (const TMQ::CloseQueue &)
+		catch (const TMQ::Single::CloseQueue &)
 		{
 		}
 	}
@@ -105,12 +105,12 @@ public:
 	
 	Test()
 	{
-		_emitter = _worker.operator TMQ::Emitter();
+		_emitter = _worker.operator TMQ::Single::Emitter();
 	}
 
 	void done()
 	{
-		_emitter.send(TMQ::CloseQueue());
+		_emitter.send(TMQ::Single::CloseQueue());
 	}
 
 	~Test()

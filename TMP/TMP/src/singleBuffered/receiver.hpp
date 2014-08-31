@@ -4,18 +4,21 @@
 
 namespace TMQ
 {
-	class Receiver
+	namespace Single
 	{
-		Queue _queue;
-	public:
-		operator Emitter()
+		class Receiver
 		{
-			return Emitter(&_queue);
-		}
+			Queue _queue;
+		public:
+			operator Emitter()
+			{
+				return Emitter(&_queue);
+			}
 
-		Dispatcher wait()
-		{
-			return Dispatcher(&_queue);
-		}
-	};
+			Dispatcher wait()
+			{
+				return Dispatcher(&_queue);
+			}
+		};
+	}
 }

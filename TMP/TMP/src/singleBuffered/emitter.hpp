@@ -4,22 +4,25 @@
 
 namespace TMQ
 {
-	class Emitter
+	namespace Single
 	{
-		Queue *_queue;
-	public:
-		Emitter() :
-			_queue(nullptr)
-		{}
-
-		explicit Emitter(Queue *queue)
-			: _queue(queue)
-		{}
-
-		template<typename T>
-		void send(const T &message)
+		class Emitter
 		{
-			_queue->push(message);
-		}
-	};
+			Queue *_queue;
+		public:
+			Emitter() :
+				_queue(nullptr)
+			{}
+
+			explicit Emitter(Queue *queue)
+				: _queue(queue)
+			{}
+
+			template<typename T>
+			void send(const T &message)
+			{
+				_queue->push(message);
+			}
+		};
+	}
 }
