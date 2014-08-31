@@ -5,32 +5,10 @@
 #include <utility>
 #include <cinttypes>
 
+#include "../common/message.hpp"
+
 namespace TMQ
 {
-	namespace PtrQueueType
-	{
-		static std::uint16_t __counter = 0;
-		struct Base
-		{
-			Base(std::uint16_t _uid = 0)
-			: uid(_uid)
-			{
-			}
-			virtual ~Base(){}
-			const std::uint16_t uid;
-		};
-		template <typename T>
-		struct BaseUid : public Base
-		{
-			static const std::uint16_t getId() { static uint16_t id = __counter++; return id; }
-			BaseUid()
-				: Base(BaseUid::getId())
-			{}
-			virtual ~BaseUid(){}
-		};
-	}
-
-	template <typename Base>
 	class PtrQueue
 	{
 	public:
@@ -69,24 +47,25 @@ namespace TMQ
 		template <typename T, typename ...Args>
 		T* push(Args ...args)
 		{
+			std::size_t s = sizeof(Message<T>);
+			std::size_t sizeOfInt = sizeof(std::size_t);
+
 			if (_data == nullptr
-				|| _size - _to < sizeof(T)+sizeof(std::size_t))
+				|| _size - _to < s + sizeOfInt)
 			{
 				allocate<T>();
 			}
-			std::size_t s = sizeof(T);
-			std::size_t sizeOfInt = sizeof(std::size_t);
 
 			char *tmp = _data;
 			tmp += _to;
 			memcpy(tmp, &s, sizeOfInt);
 			tmp += sizeOfInt;
-			T* res = new(tmp)T(args...);
+			Message<T>* res = new(tmp)Message<T>(T(args...));
 			_to += sizeOfInt + s;
-			return res;
+			return &res->_data;
 		}
 
-		Base *pop()
+		MessageBase *pop()
 		{
 			if (empty())
 				return nullptr;
@@ -98,10 +77,10 @@ namespace TMQ
 			std::size_t s = *reinterpret_cast<std::size_t*>(tmp);
 			_cursor += s + soi;
 			tmp += soi;
-			return ((Base*)(tmp));
+			return ((MessageBase*)(tmp));
 		}
 
-		Base *front()
+		MessageBase *front()
 		{
 			if (empty())
 				return nullptr;
@@ -112,7 +91,7 @@ namespace TMQ
 			tmp += _cursor;
 			std::size_t s = *reinterpret_cast<std::size_t*>(tmp);
 			tmp += soi;
-			return ((Base*)(tmp));
+			return ((MessageBase*)(tmp));
 		}
 
 		void clear()
@@ -142,7 +121,7 @@ namespace TMQ
 		template <typename T>
 		void allocate()
 		{
-			std::size_t sizeOfType = sizeof(T);
+			std::size_t sizeOfType = sizeof(Message<T>);
 			
 			while (_size - _to <= sizeOfType + sizeof(std::size_t)
 				|| _size <= _to)

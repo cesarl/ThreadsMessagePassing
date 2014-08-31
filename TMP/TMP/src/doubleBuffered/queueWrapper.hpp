@@ -4,11 +4,10 @@
 
 namespace TMQ
 {
-	template <typename QueueType>
 	class QueueWrapper
 	{
-		TMQ::PtrQueue<QueueType> _queue;
-		TMQ::PtrQueue<QueueType> _copy;
+		TMQ::PtrQueue _queue;
+		TMQ::PtrQueue _copy;
 		std::mutex _mutex;
 		std::condition_variable _readCondition;
 		std::condition_variable _writeCondition;
@@ -28,12 +27,12 @@ namespace TMQ
 
 		// todo move operators
 
-		PtrQueue<QueueType> &getWritableQueue()
+		PtrQueue &getWritableQueue()
 		{
 			return _queue;
 		}
 
-		void getReadableQueue(PtrQueue<QueueType> &queue)
+		void getReadableQueue(PtrQueue &queue)
 		{
 			std::unique_lock<std::mutex> lock(_mutex);
 			_readCondition.wait(lock, [this](){ return !_copy.empty(); });
