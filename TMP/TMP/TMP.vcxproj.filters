@@ -54,9 +54,18 @@
     <ClInclude Include="src\doubleBuffered\queue.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\doubleBuffered\dispatcher.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\doubleBuffered\templateDispatcher.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="test\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\doubleBuffered\queue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

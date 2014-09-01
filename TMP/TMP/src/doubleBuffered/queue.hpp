@@ -4,6 +4,8 @@
 #include <new>
 #include <utility>
 #include <cinttypes>
+#include <condition_variable>
+#include <mutex>
 
 #include "../common/message.hpp"
 
@@ -13,6 +15,7 @@ namespace TMQ
 	{
 
 		class Queue;
+		class Dispatcher;
 
 			////////////////////////////
 			////// PTR QUEUE
@@ -207,6 +210,8 @@ namespace TMQ
 				_writeCondition.notify_one();
 			}
 
+			Dispatcher getDispatcher();
+
 			void releaseReadability()
 			{
 				std::unique_lock<std::mutex> lock(_mutex);
@@ -220,17 +225,37 @@ namespace TMQ
 			//////
 			////// Internal queue access
 
+			//Do not lock mutex
+			//Use it only if used in the same thread, or use safePush
 			template <typename T>
 			T* push(const T& e)
 			{
 				return _queue.push(e);
 			}
 
+			//Do not lock mutex
+			//Use it only if used in the same thread, or use safeEmplace
 			template <typename T, typename ...Args>
 			T* emplace(Args ...args)
 			{
 				return _queue.emplace<T>(args...);
 			}
+
+			//Lock mutex
+			template <typename T>
+			void safePush(const T& e)
+			{
+					std::lock_guard<std::mutex>(_mutex);
+					_queue.push(e);
+			}
+
+			template <typename T, typename ...Args>
+			void safeEmplace(Args ...args)
+			{
+				std::lock_guard<std::mutex>(_mutex);
+				_queue.emplace<T>(args...);
+			}
+
 		};
 	}
 }

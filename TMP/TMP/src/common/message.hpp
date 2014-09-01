@@ -29,4 +29,8 @@ namespace TMQ
 			: MessageBase(getId()), _data(data)
 		{}
 	};
+
+	class CloseQueue
+	{
+	};
 }

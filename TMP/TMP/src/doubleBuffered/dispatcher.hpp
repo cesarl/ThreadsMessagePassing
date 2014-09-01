@@ -1,14 +1,14 @@
 #pragma once
 
-#include "emitter.hpp"
+#include "queue.hpp"
 
 namespace TMQ
 {
-	namespace Single
+	namespace Double
 	{
 		class Dispatcher
 		{
-			TMQ::Single::Queue *_queue;
+			TMQ::Double::Queue *_queue;
 			bool _chained;
 
 			Dispatcher(const Dispatcher &) = delete;
@@ -19,17 +19,18 @@ namespace TMQ
 				, typename _Func>
 				friend class TemplateDispatcher;
 
-
 			void waitAndDispatch()
 			{
-				while (true)
+				TMQ::Double::PtrQueue q;
+				_queue->getReadableQueue(q);
+				while (!q.empty())
 				{
-					auto message = _queue->waitAndPop();
+					auto message = q.pop();
 					dispatch(message);
 				}
 			}
 
-			bool dispatch(const std::shared_ptr<MessageBase> &msg)
+			bool dispatch(MessageBase* &msg)
 			{
 				return false;
 			}
@@ -42,7 +43,7 @@ namespace TMQ
 				o._chained = false;
 			}
 
-			explicit Dispatcher(TMQ::Single::Queue *queue)
+			explicit Dispatcher(TMQ::Double::Queue *queue)
 				: _queue(queue)
 				, _chained(false)
 			{}

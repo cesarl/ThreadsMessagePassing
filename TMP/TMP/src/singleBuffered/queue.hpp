@@ -24,6 +24,7 @@ namespace TMQ
 				_queue.push(std::make_shared<Message<T>>(message));
 				_condition.notify_one();
 			}
+
 			std::shared_ptr<MessageBase> waitAndPop()
 			{
 				std::unique_lock<std::mutex> lock(_mutex);

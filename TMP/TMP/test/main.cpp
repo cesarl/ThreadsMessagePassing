@@ -2,6 +2,7 @@
 #include "../src/singleBuffered/receiver.hpp"
 
 #include "../src/doubleBuffered/queue.hpp"
+#include "../src/doubleBuffered/templateDispatcher.hpp"
 
 #include <iostream>
 #include <string>
@@ -54,54 +55,60 @@ class Test
 public:
 	void runWorker()
 	{
-		try
+		bool run = true;
+		auto counter = 0;
+		while (run)
 		{
-			for (;;)
+			auto res = 0;
+			_worker.wait()
+				.handle<DuoMessage>([&](const DuoMessage& msg)
 			{
-				_worker.wait()
-					.handle<DuoMessage>([&](const DuoMessage& msg)
-				{
-					auto res = std::sqrt(msg.a) * std::acos(msg.b);
-				})
-					.handle<TrioMessage>([&](const TrioMessage& msg)
-				{
-					auto res = std::sqrt(msg.a) * std::acos(msg.b) * std::asin(msg.c);
-				})
-					.handle<QuatroMessage>([&](const QuatroMessage& msg)
-				{
-					auto res = std::sqrt(msg.a) * std::acos(msg.b) * std::asin(msg.c) * std::sin(msg.d);
-				});
-			}
+				res = std::sqrt(msg.a) * std::acos(msg.b);
+			})
+				.handle<TrioMessage>([&](const TrioMessage& msg)
+			{
+				res = std::sqrt(msg.a) * std::acos(msg.b) * std::asin(msg.c);
+			})
+				.handle<QuatroMessage>([&](const QuatroMessage& msg)
+			{
+				res = std::sqrt(msg.a) * std::acos(msg.b) * std::asin(msg.c) * std::sin(msg.d);
+			})
+				.handle<TMQ::CloseQueue>([&](const TMQ::CloseQueue& msg)
+			{
+				run = false;
+			});
+			++counter;
 		}
-		catch (const TMQ::Single::CloseQueue &)
-		{
-		}
+		std::cout << counter << std::endl;
 	}
 
 	void runEmitter()
 	{
 		std::srand(42);
-		for (auto i = 0; i < 1000000; ++i)
+		for (auto i = 0; i < 1000; ++i)
 		{
-			auto res = std::sqrt(rand()) * std::acos(rand()) * std::asin(rand()) * std::sin(rand());
-			if (i % 2)
+			for (auto j = 0; j < 1000; ++j)
 			{
-				_emitter.send(DuoMessage(res, rand()));
-			}
-			else if (i % 3)
-			{
+				auto res = rand();
+				if (i % 2)
+				{
+					_emitter.send(DuoMessage(res, rand()));
+				}
+				else if (i % 3)
+				{
 
-				_emitter.send(TrioMessage(res, rand(), rand()));
-			}
-			else
-			{
+					_emitter.send(TrioMessage(res, rand(), rand()));
+				}
+				else
+				{
 
-				_emitter.send(QuatroMessage(res, rand(), rand(), rand()));
+					_emitter.send(QuatroMessage(res, rand(), rand(), rand()));
+				}
 			}
 		}
 		done();
 	}
-	
+
 	Test()
 	{
 		_emitter = _worker.operator TMQ::Single::Emitter();
@@ -109,73 +116,154 @@ public:
 
 	void done()
 	{
-		_emitter.send(TMQ::Single::CloseQueue());
+		_emitter.send(TMQ::CloseQueue());
 	}
 
 	~Test()
 	{
 		done();
 	}
-
 };
 
-struct MessageDb1
+class Test2
 {
-	int i = 42;
-	MessageDb1(int _i) : i(_i){}
+	TMQ::Double::Queue _queue;
+public:
+	void runWorker()
+	{
+		bool run = true;
+		auto counter = 0;
+		while (run)
+		{
+			int res = 0;
+			_queue.getDispatcher()
+				.handle<DuoMessage>([&](const DuoMessage& msg)
+			{
+				res = std::sqrt(msg.a) * std::acos(msg.b);
+			})
+				.handle<TrioMessage>([&](const TrioMessage& msg)
+			{
+				res = std::sqrt(msg.a) * std::acos(msg.b) * std::asin(msg.c);
+			})
+				.handle<QuatroMessage>([&](const QuatroMessage& msg)
+			{
+				res = std::sqrt(msg.a) * std::acos(msg.b) * std::asin(msg.c) * std::sin(msg.d);
+			})
+				.handle<TMQ::CloseQueue>([&](const TMQ::CloseQueue& msg)
+			{
+				run = false;
+			});
+			++counter;
+			std::cout << res << std::endl;
+		}
+		std::cout << counter << std::endl;
+	}
+
+	void runEmitter()
+	{
+		_queue.launch();
+		std::srand(42);
+		for (auto i = 0; i < 1000; ++i)
+		{
+			for (auto j = 0; j < 1000; ++j)
+			{
+				auto res = rand();
+				if (i % 2)
+				{
+					_queue.push(DuoMessage(res, rand()));
+				}
+				else if (i % 3)
+				{
+					_queue.push(TrioMessage(res, rand(), rand()));
+				}
+				else
+				{
+					_queue.push(QuatroMessage(res, rand(), rand(), rand()));
+				}
+			}
+			_queue.releaseReadability();
+		}
+		done();
+	}
+
+	Test2()
+	{
+	}
+
+	void done()
+	{
+		_queue.emplace<TMQ::CloseQueue>();
+		_queue.releaseReadability();
+	}
+
+	~Test2()
+	{
+		done();
+	}
 };
 
-void DbWorker(TMQ::Double::Queue &queue)
-{
-	TMQ::Double::PtrQueue q;
-	while (true)
-	{
-		queue.getReadableQueue(q);
-		while (!q.empty())
-		{
-			auto v = q.pop();
-			std::cout << ((TMQ::Message<MessageDb1>*)(v))->_data.i << std::endl;
-		}
-	}
-}
-
-void DbMain(TMQ::Double::Queue &queue)
-{
-	auto ii = 0;
-	while (ii < 10)
-	{
-		for (auto i = 0; i < 10; ++i)
-		{
-			queue.emplace<MessageDb1>(ii * 100000 + i);
-		}
-		queue.releaseReadability();
-		++ii;
-	}
-}
+//struct MessageDb1
+//{
+//	int i = 42;
+//	MessageDb1(int _i) : i(_i){}
+//};
+//
+//void DbWorker(TMQ::Double::Queue &queue)
+//{
+//	TMQ::Double::PtrQueue q;
+//	while (true)
+//	{
+//		queue.getReadableQueue(q);
+//		while (!q.empty())
+//		{
+//			auto v = q.pop();
+//			std::cout << ((TMQ::Message<MessageDb1>*)(v))->_data.i << std::endl;
+//		}
+//	}
+//}
+//
+//void DbMain(TMQ::Double::Queue &queue)
+//{
+//	auto ii = 0;
+//	while (ii < 10)
+//	{
+//		for (auto i = 0; i < 10; ++i)
+//		{
+//			queue.emplace<MessageDb1>(ii * 100000 + i);
+//		}
+//		queue.releaseReadability();
+//		++ii;
+//	}
+//}
 
 int main(void)
 {
-	//auto start = std::chrono::high_resolution_clock::now();
-	//Test test;
-	//std::thread main(&Test::runEmitter, &test);
-	//std::thread worker(&Test::runWorker, &test);
-	//main.join();
-	//worker.join();
-	//auto end = std::chrono::high_resolution_clock::now();
-	//auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
-	//std::ofstream a_file("LOG.txt", std::ofstream::app);
-	//a_file << "Duration : " << std::to_string(dur.count()) << std::endl;
-
+	{
+		auto start = std::chrono::high_resolution_clock::now();
+		Test test;
+		std::thread main(&Test::runEmitter, &test);
+		std::thread worker(&Test::runWorker, &test);
+		main.join();
+		worker.join();
+		auto end = std::chrono::high_resolution_clock::now();
+		auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+		std::ofstream a_file("LOG.txt", std::ofstream::app);
+		a_file << "Duration Single : " << std::to_string(dur.count()) << std::endl;
+	}
 
 	//------------------------------
 
-	TMQ::Double::Queue queue;
-
-	std::thread worker(DbWorker, std::ref(queue));
-	std::thread main(DbMain, std::ref(queue));
-	queue.launch();
-	main.join();
-	worker.join();
-
+{
+	//auto start = std::chrono::high_resolution_clock::now();
+	//Test2 test;
+	//std::thread worker(&Test2::runWorker, &test);
+	//std::thread main(&Test2::runEmitter, &test);
+	//main.join();
+	//worker.join();
+	//auto end = std::chrono::high_resolution_clock::now();
+	//auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	//std::ofstream a_file("LOG.txt", std::ofstream::app);
+	//a_file << "Duration Double : " << std::to_string(dur.count()) << std::endl;
+}
 	return 0;
 }
