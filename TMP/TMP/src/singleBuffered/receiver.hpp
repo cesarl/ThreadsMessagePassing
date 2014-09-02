@@ -15,7 +15,7 @@ namespace TMQ
 				return Emitter(&_queue);
 			}
 
-			Dispatcher wait()
+			Dispatcher getDispatcher()
 			{
 				return Dispatcher(&_queue);
 			}
