@@ -181,15 +181,15 @@ public:
 				auto res = rand();
 				if (i % 2)
 				{
-					_queue.push(DuoMessage(res, rand()));
+					_queue.emplace<DuoMessage>(res, rand());
 				}
 				else if (i % 3)
 				{
-					_queue.push(TrioMessage(res, rand(), rand()));
+					_queue.emplace<TrioMessage>(res, rand(), rand());
 				}
 				else
 				{
-					_queue.push(QuatroMessage(res, rand(), rand(), rand()));
+					_queue.emplace<QuatroMessage>(res, rand(), rand(), rand());
 				}
 			}
 			_queue.releaseReadability();
@@ -250,31 +250,31 @@ public:
 int main(void)
 {
 	{
-		auto start = std::chrono::high_resolution_clock::now();
-		Test test;
-		std::thread main(&Test::runEmitter, &test);
-		std::thread worker(&Test::runWorker, &test);
-		main.join();
-		worker.join();
-		auto end = std::chrono::high_resolution_clock::now();
-		auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-		std::ofstream a_file("LOG.txt", std::ofstream::app);
-		a_file << "Duration Single : " << std::to_string(dur.count()) << std::endl;
+		//auto start = std::chrono::high_resolution_clock::now();
+		//Test test;
+		//std::thread main(&Test::runEmitter, &test);
+		//std::thread worker(&Test::runWorker, &test);
+		//main.join();
+		//worker.join();
+		//auto end = std::chrono::high_resolution_clock::now();
+		//auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+		//std::ofstream a_file("LOG.txt", std::ofstream::app);
+		//a_file << "Duration Single : " << std::to_string(dur.count()) << std::endl;
 	}
 
 	//------------------------------
 
 {
-	//auto start = std::chrono::high_resolution_clock::now();
-	//Test2 test;
-	//std::thread worker(&Test2::runWorker, &test);
-	//std::thread main(&Test2::runEmitter, &test);
-	//main.join();
-	//worker.join();
-	//auto end = std::chrono::high_resolution_clock::now();
-	//auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-	//std::ofstream a_file("LOG.txt", std::ofstream::app);
-	//a_file << "Duration Double : " << std::to_string(dur.count()) << std::endl;
+	auto start = std::chrono::high_resolution_clock::now();
+	Test2 test;
+	std::thread worker(&Test2::runWorker, &test);
+	std::thread main(&Test2::runEmitter, &test);
+	main.join();
+	worker.join();
+	auto end = std::chrono::high_resolution_clock::now();
+	auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	std::ofstream a_file("LOG.txt", std::ofstream::app);
+	a_file << "Duration Double : " << std::to_string(dur.count()) << std::endl;
 }
 	return 0;
 }
