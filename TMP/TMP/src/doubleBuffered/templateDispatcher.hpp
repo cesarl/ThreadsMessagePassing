@@ -29,8 +29,8 @@ namespace TMQ
 				while (!q.empty())
 				{
 					auto message = q.pop();
-					if
-					(dispatch(message));
+					auto ret = dispatch(message);
+					if (!ret)
 						break;
 				}
 			}

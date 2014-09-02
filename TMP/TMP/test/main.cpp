@@ -64,20 +64,22 @@ public:
 				.handle<DuoMessage>([&](const DuoMessage& msg)
 			{
 				res = std::sqrt(msg.a) * std::acos(msg.b);
+				++counter;
 			})
 				.handle<TrioMessage>([&](const TrioMessage& msg)
 			{
 				res = std::sqrt(msg.a) * std::acos(msg.b) * std::asin(msg.c);
+				++counter;
 			})
 				.handle<QuatroMessage>([&](const QuatroMessage& msg)
 			{
 				res = std::sqrt(msg.a) * std::acos(msg.b) * std::asin(msg.c) * std::sin(msg.d);
+				++counter;
 			})
 				.handle<TMQ::CloseQueue>([&](const TMQ::CloseQueue& msg)
 			{
 				run = false;
 			});
-			++counter;
 		}
 		std::cout << counter << std::endl;
 	}
@@ -133,28 +135,33 @@ public:
 	{
 		bool run = true;
 		auto counter = 0;
+		std::ofstream a_file("TEST.txt");
 		while (run)
 		{
 			int res = 0;
 			_queue.getDispatcher()
 				.handle<DuoMessage>([&](const DuoMessage& msg)
 			{
-				res = std::sqrt(msg.a) * std::acos(msg.b);
+				res = msg.a * msg.b;
+				a_file << res << ", ";
+				counter++;
 			})
 				.handle<TrioMessage>([&](const TrioMessage& msg)
 			{
-				res = std::sqrt(msg.a) * std::acos(msg.b) * std::asin(msg.c);
+				res = msg.a * msg.b * msg.c;
+				a_file << res << ", ";
+				counter++;
 			})
 				.handle<QuatroMessage>([&](const QuatroMessage& msg)
 			{
-				res = std::sqrt(msg.a) * std::acos(msg.b) * std::asin(msg.c) * std::sin(msg.d);
+				res = msg.a * msg.b * msg.c * msg.d;
+				a_file << res << ", ";
+				counter++;
 			})
 				.handle<TMQ::CloseQueue>([&](const TMQ::CloseQueue& msg)
 			{
 				run = false;
 			});
-			++counter;
-			std::cout << res << std::endl;
 		}
 		std::cout << counter << std::endl;
 	}
@@ -239,31 +246,31 @@ public:
 int main(void)
 {
 	{
-		auto start = std::chrono::high_resolution_clock::now();
-		Test test;
-		std::thread main(&Test::runEmitter, &test);
-		std::thread worker(&Test::runWorker, &test);
-		main.join();
-		worker.join();
-		auto end = std::chrono::high_resolution_clock::now();
-		auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-		std::ofstream a_file("LOG.txt", std::ofstream::app);
-		a_file << "Duration Single : " << std::to_string(dur.count()) << std::endl;
+		//auto start = std::chrono::high_resolution_clock::now();
+		//Test test;
+		//std::thread main(&Test::runEmitter, &test);
+		//std::thread worker(&Test::runWorker, &test);
+		//main.join();
+		//worker.join();
+		//auto end = std::chrono::high_resolution_clock::now();
+		//auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+		//std::ofstream a_file("LOG.txt", std::ofstream::app);
+		//a_file << "Duration Single : " << std::to_string(dur.count()) << std::endl;
 	}
 
 	//------------------------------
 
 {
-	//auto start = std::chrono::high_resolution_clock::now();
-	//Test2 test;
-	//std::thread worker(&Test2::runWorker, &test);
-	//std::thread main(&Test2::runEmitter, &test);
-	//main.join();
-	//worker.join();
-	//auto end = std::chrono::high_resolution_clock::now();
-	//auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-	//std::ofstream a_file("LOG.txt", std::ofstream::app);
-	//a_file << "Duration Double : " << std::to_string(dur.count()) << std::endl;
+	auto start = std::chrono::high_resolution_clock::now();
+	Test2 test;
+	std::thread worker(&Test2::runWorker, &test);
+	std::thread main(&Test2::runEmitter, &test);
+	main.join();
+	worker.join();
+	auto end = std::chrono::high_resolution_clock::now();
+	auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	std::ofstream a_file("LOG.txt", std::ofstream::app);
+	a_file << "Duration Double : " << std::to_string(dur.count()) << std::endl;
 }
 	return 0;
 }
