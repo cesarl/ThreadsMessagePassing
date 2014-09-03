@@ -28,6 +28,10 @@ namespace TMQ
 		explicit Message(const T &data)
 			: MessageBase(getId()), _data(data)
 		{}
+
+		explicit Message(T &&data)
+			: MessageBase(getId()), _data(std::move(data))
+		{}
 	};
 
 	class CloseQueue

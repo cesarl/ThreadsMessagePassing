@@ -28,6 +28,10 @@ struct TrioMessage
 	int a;
 	int b;
 	int c;
+	int d : 4;
+	int e : 3;
+	int f : 2;
+	bool g;
 
 	TrioMessage(int _a, int _b, int _c)
 		: a(_a), b(_b), c(_c)
