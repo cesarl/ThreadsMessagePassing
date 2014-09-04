@@ -9,6 +9,33 @@
 #include <thread>
 #include <fstream>
 
+	// Used for messages which return value
+	// ex : struct MyReturnValueMsg : public FutureData<int>
+namespace TMQ
+{
+	template <typename T>
+	struct FutureData
+	{
+		std::promise<T> result;
+		std::future<T> getFuture()
+		{
+			return result.get_future();
+		}
+		FutureData& operator=(const FutureData&) = delete;
+		explicit FutureData(const FutureData&) = delete;
+		explicit FutureData() = default;
+		FutureData& operator=(FutureData&& o)
+		{
+			result = std::move(o.result);
+			return *this;
+		}
+		explicit FutureData(FutureData&& o)
+		{
+			result = std::move(o.result);
+		}
+	};
+}
+
 enum OperationType
 {
 };
@@ -50,90 +77,91 @@ struct QuatroMessage
 	{}
 };
 
+struct FutureMessage : public TMQ::FutureData<int>
+{};
 
-class Test
-{
-	TMQ::Single::Receiver _worker;
-	TMQ::Single::Emitter _emitter;
-
-public:
-	void runWorker()
-	{
-		bool run = true;
-		auto counter = 0;
-		std::ofstream a_file("TEST.txt");
-		while (run)
-		{
-			auto res = 0;
-			_worker.getDispatcher()
-				.handle<DuoMessage>([&](const DuoMessage& msg)
-			{
-				res = msg.a * msg.b;
-				a_file << res << ", ";
-				counter++;
-			})
-				.handle<TrioMessage>([&](const TrioMessage& msg)
-			{
-				res = msg.a * msg.b * msg.c;
-				a_file << res << ", ";
-				counter++;
-			})
-				.handle<QuatroMessage>([&](const QuatroMessage& msg)
-			{
-				res = msg.a * msg.b * msg.c * msg.d;
-				a_file << res << ", ";
-				counter++;
-			})
-				.handle<TMQ::CloseQueue>([&](const TMQ::CloseQueue& msg)
-			{
-				run = false;
-			});
-		}
-		std::cout << counter << std::endl;
-	}
-
-	void runEmitter()
-	{
-		std::srand(42);
-		for (auto i = 0; i < 1000; ++i)
-		{
-			for (auto j = 0; j < 1000; ++j)
-			{
-				auto res = rand();
-				if (i % 2)
-				{
-					_emitter.send(DuoMessage(res, rand()));
-				}
-				else if (i % 3)
-				{
-
-					_emitter.send(TrioMessage(res, rand(), rand()));
-				}
-				else
-				{
-
-					_emitter.send(QuatroMessage(res, rand(), rand(), rand()));
-				}
-			}
-		}
-		done();
-	}
-
-	Test()
-	{
-		_emitter = _worker.operator TMQ::Single::Emitter();
-	}
-
-	void done()
-	{
-		_emitter.send(TMQ::CloseQueue());
-	}
-
-	~Test()
-	{
-		done();
-	}
-};
+//class Test
+//{
+//	TMQ::Single::Receiver _worker;
+//	TMQ::Single::Emitter _emitter;
+//
+//public:
+//	void runWorker()
+//	{
+//		bool run = true;
+//		auto counter = 0;
+//		std::ofstream a_file("TEST.txt");
+//		while (run)
+//		{
+//			auto res = 0;
+//			_worker.getDispatcher()
+//				.handle<DuoMessage>([&](const DuoMessage& msg)
+//			{
+//				res = msg.a * msg.b;
+//				a_file << res << ", ";
+//				counter++;
+//			})
+//				.handle<TrioMessage>([&](const TrioMessage& msg)
+//			{
+//				res = msg.a * msg.b * msg.c;
+//				a_file << res << ", ";
+//				counter++;
+//			})
+//				.handle<QuatroMessage>([&](const QuatroMessage& msg)
+//			{
+//				res = msg.a * msg.b * msg.c * msg.d;
+//				a_file << res << ", ";
+//				counter++;
+//			})
+//				.handle<TMQ::CloseQueue>([&](const TMQ::CloseQueue& msg)
+//			{
+//				run = false;
+//			});
+//		}
+//		std::cout << counter << std::endl;
+//	}
+//
+//	void runEmitter()
+//	{
+//		std::srand(42);
+//		for (auto i = 0; i < 1000; ++i)
+//		{
+//			for (auto j = 0; j < 1000; ++j)
+//			{
+//				auto res = rand();
+//				if (i % 2)
+//				{
+//					_emitter.send(DuoMessage(res, rand()));
+//				}
+//				else if (i % 3)
+//				{
+//
+//					_emitter.send(TrioMessage(res, rand(), rand()));
+//				}
+//				else
+//				{
+//					_emitter.send(QuatroMessage(res, rand(), rand(), rand()));
+//				}
+//			}
+//		}
+//		done();
+//	}
+//
+//	Test()
+//	{
+//		_emitter = _worker.operator TMQ::Single::Emitter();
+//	}
+//
+//	void done()
+//	{
+//		_emitter.send(TMQ::CloseQueue());
+//	}
+//
+//	~Test()
+//	{
+//		done();
+//	}
+//};
 
 class Test2
 {
@@ -166,6 +194,10 @@ public:
 				a_file << res << ", ";
 				counter++;
 			})
+				.handle<FutureMessage>([&](FutureMessage& msg)
+			{
+				msg.result.set_value(42);
+			})
 				.handle<TMQ::CloseQueue>([&](const TMQ::CloseQueue& msg)
 			{
 				run = false;
@@ -194,6 +226,13 @@ public:
 				else
 				{
 					_queue.emplace<QuatroMessage>(res, rand(), rand(), rand());
+				}
+
+				if (j % 100 == 0)
+				{
+					auto futureInt = _queue.priorityEmplace<FutureMessage, int>();
+					auto v = futureInt.get();
+					std::cout << "Priority with future when i = " << i << " and j = " << j << " is : " << v << std::endl;
 				}
 			}
 			_queue.releaseReadability();

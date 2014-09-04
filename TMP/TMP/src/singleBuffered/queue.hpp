@@ -1,11 +1,11 @@
 #pragma once
 
+#include "../common/message.hpp"
+
 #include <mutex>
 #include <condition_variable>
 #include <queue>
 #include <memory>
-
-#include "../common/message.hpp"
 
 namespace TMQ
 {

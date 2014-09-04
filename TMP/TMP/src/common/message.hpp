@@ -1,5 +1,7 @@
 #pragma once
 
+#include <future>
+
 namespace TMQ
 {
 	struct MessageBase
@@ -32,6 +34,12 @@ namespace TMQ
 		explicit Message(T &&data)
 			: MessageBase(getId()), _data(std::move(data))
 		{}
+
+		template <typename ...Args>
+		explicit Message(Args ...args)
+			: MessageBase(getId()), _data(args...)
+		{
+		}
 	};
 
 	class CloseQueue

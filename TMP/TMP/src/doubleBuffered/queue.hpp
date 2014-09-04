@@ -1,13 +1,13 @@
 #pragma once
 
+#include "../common/message.hpp"
+
 #include <cstdlib>
 #include <new>
 #include <utility>
 #include <cinttypes>
 #include <condition_variable>
 #include <mutex>
-
-#include "../common/message.hpp"
 
 namespace TMQ
 {
@@ -109,7 +109,7 @@ namespace TMQ
 
 		private:
 			template <typename T>
-			T* push(const T& e)
+			T* push(T&& e)
 			{
 				std::size_t s = sizeof(Message<T>);
 				std::size_t sizeOfInt = sizeof(std::size_t);
@@ -145,7 +145,7 @@ namespace TMQ
 				tmp += _to;
 				memcpy(tmp, &s, sizeOfInt);
 				tmp += sizeOfInt;
-				Message<T>* res = new(tmp)Message<T>(T(args...));
+				Message<T>* res = new(tmp)Message<T>(args...);
 				_to += sizeOfInt + s;
 				return &res->_data;
 			}
@@ -181,6 +181,9 @@ namespace TMQ
 		{
 			PtrQueue _queue;
 			PtrQueue _copy;
+
+			PtrQueue _priority;
+			PtrQueue _priorityCopy;
 			std::mutex _mutex;
 			std::condition_variable _readCondition;
 			std::condition_variable _writeCondition;
@@ -203,9 +206,17 @@ namespace TMQ
 			void getReadableQueue(PtrQueue& q)
 			{
 				std::unique_lock<std::mutex> lock(_mutex);
-				_readCondition.wait(lock, [this](){ return !_copy.empty(); });
-				q = _copy;
-				_copy.clear();
+				_readCondition.wait(lock, [this](){ return !_copy.empty() || !_priorityCopy.empty(); });
+				if (!_priorityCopy.empty())
+				{
+					q = _priorityCopy;
+					_priorityCopy.clear();
+				}
+				else
+				{
+					q = _copy;
+					_copy.clear();
+				}
 				lock.unlock();
 				_writeCondition.notify_one();
 			}
@@ -215,15 +226,28 @@ namespace TMQ
 			void releaseReadability()
 			{
 				std::unique_lock<std::mutex> lock(_mutex);
-				_writeCondition.wait(lock, [this](){ return _copy.empty(); });
-				_copy = _queue;
-				_queue.clear();
-				lock.unlock();
-				_readCondition.notify_one();
+				_writeCondition.wait(lock, [this]()
+				{
+					return ((_copy.empty() && !_queue.empty()) || (_priorityCopy.empty() && !_priority.empty()));
+				});
+				if (!_priority.empty())
+				{
+					_priorityCopy = _priority;
+					_priority.clear();
+					lock.unlock();
+					_readCondition.notify_one();
+				}
+				else
+				{
+					_copy = _queue;
+					_queue.clear();
+					lock.unlock();
+					_readCondition.notify_one();
+				}
 			}
 
 			//////
-			////// Internal queue access
+			////// Internal standard queue access
 
 			//Do not lock mutex
 			//Use it only if used in the same thread, or use safePush
@@ -242,20 +266,93 @@ namespace TMQ
 			}
 
 			//Lock mutex
+			//Can be called simutanously in different threads
 			template <typename T>
 			void safePush(const T& e)
 			{
-					std::lock_guard<std::mutex>(_mutex);
-					_queue.push(e);
+				std::lock_guard<std::mutex> lock(_mutex);
+				_queue.push(e);
 			}
 
+			//Lock mutex
+			//Can be called simutanously in different thre
 			template <typename T, typename ...Args>
 			void safeEmplace(Args ...args)
 			{
-				std::lock_guard<std::mutex>(_mutex);
+				std::lock_guard<std::mutex> lock(_mutex);
 				_queue.emplace<T>(args...);
 			}
 
+			//Push in queue and return future
+			//Message data have to heritate from FutureData
+			template <typename T, typename F>
+			std::future<F> push(const T &e)
+			{
+				return _queue.push(e)->getFuture();
+			}
+
+			//Emplace in queue and return future
+			//Message data have to heritate from FutureData
+			template <typename T, typename F, typename ...Args>
+			std::future<F> emplace(Args ...args)
+			{
+				return std::forward<std::future<F>>(_queue.emplace<T>(args...)->getFuture());
+			}
+
+			//////
+			////// Internal priority queue access
+
+			//Lock mutex
+			//Can be called simutanously in different threads
+			template <typename T>
+			void priorityPush(const T& e)
+			{
+				{
+					std::lock_guard<std::mutex> lock(_mutex);
+					_queue.push(e);
+				}
+				releaseReadability();
+			}
+
+			//Lock mutex
+			//Can be called simutanously in different thre
+			template <typename T, typename ...Args>
+			void priorityEmplace(Args ...args)
+			{
+				{
+					std::lock_guard<std::mutex> lock(_mutex);
+					_queue.emplace<T>(args...);
+				}
+				releaseReadability();
+			}
+
+			//Push in queue and return future
+			//Message data have to heritate from FutureData
+			template <typename T, typename F>
+			std::future<F> priorityPush(const T &e)
+			{
+				std::future<F> futur;
+				{
+					std::lock_guard<std::mutex> lock(_mutex);
+					futur = _priority.push(e)->getFuture();
+				}
+				releaseReadability();
+				return futur;
+			}
+
+			//Emplace in queue and return future
+			//Message data have to heritate from FutureData
+			template <typename T, typename F, typename ...Args>
+			std::future<F> priorityEmplace(Args ...args)
+			{
+				std::future<F> futur;
+				{
+					std::lock_guard<std::mutex> lock(_mutex);
+					futur = (_priority.emplace<T>(args...))->getFuture();
+				}
+				releaseReadability();
+				return std::forward<std::future<F>>(futur);
+			}
 		};
 	}
 }
