@@ -42,6 +42,30 @@ namespace TMQ
 		}
 	};
 
+	// Used for messages which return value
+	// ex : struct MyReturnValueMsg : public FutureData<int>
+	template <typename T>
+	struct FutureData
+	{
+		std::promise<T> result;
+		std::future<T> getFuture()
+		{
+			return result.get_future();
+		}
+		FutureData& operator=(const FutureData&) = delete;
+		explicit FutureData(const FutureData&) = delete;
+		explicit FutureData() = default;
+		FutureData& operator=(FutureData&& o)
+		{
+			result = std::move(o.result);
+			return *this;
+		}
+		explicit FutureData(FutureData&& o)
+		{
+			result = std::move(o.result);
+		}
+	};
+
 	class CloseQueue
 	{
 	};

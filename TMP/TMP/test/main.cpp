@@ -9,33 +9,6 @@
 #include <thread>
 #include <fstream>
 
-	// Used for messages which return value
-	// ex : struct MyReturnValueMsg : public FutureData<int>
-namespace TMQ
-{
-	template <typename T>
-	struct FutureData
-	{
-		std::promise<T> result;
-		std::future<T> getFuture()
-		{
-			return result.get_future();
-		}
-		FutureData& operator=(const FutureData&) = delete;
-		explicit FutureData(const FutureData&) = delete;
-		explicit FutureData() = default;
-		FutureData& operator=(FutureData&& o)
-		{
-			result = std::move(o.result);
-			return *this;
-		}
-		explicit FutureData(FutureData&& o)
-		{
-			result = std::move(o.result);
-		}
-	};
-}
-
 enum OperationType
 {
 };
@@ -197,6 +170,7 @@ public:
 				.handle<FutureMessage>([&](FutureMessage& msg)
 			{
 				msg.result.set_value(42);
+				a_file << std::endl << "Treating future" << std::endl;
 			})
 				.handle<TMQ::CloseQueue>([&](const TMQ::CloseQueue& msg)
 			{
@@ -210,9 +184,9 @@ public:
 	{
 		_queue.launch();
 		std::srand(42);
-		for (auto i = 0; i < 1000; ++i)
+		for (auto i = 0; i < 100; ++i)
 		{
-			for (auto j = 0; j < 1000; ++j)
+			for (auto j = 0; j < 10; ++j)
 			{
 				auto res = rand();
 				if (i % 2)
@@ -228,11 +202,11 @@ public:
 					_queue.emplace<QuatroMessage>(res, rand(), rand(), rand());
 				}
 
-				if (j % 100 == 0)
+				if (j % 3 == 0)
 				{
 					auto futureInt = _queue.priorityEmplace<FutureMessage, int>();
-					auto v = futureInt.get();
-					std::cout << "Priority with future when i = " << i << " and j = " << j << " is : " << v << std::endl;
+					//auto v = futureInt.get();
+					//std::cout << "Priority with future when i = " << i << " and j = " << j << " is : " << v << std::endl;
 				}
 			}
 			_queue.releaseReadability();
