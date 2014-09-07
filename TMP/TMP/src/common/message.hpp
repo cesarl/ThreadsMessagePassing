@@ -9,21 +9,21 @@ namespace TMQ
 		virtual ~MessageBase(){}
 		MessageBase(std::size_t _uid) : uid(_uid){}
 		std::size_t uid;
+		MessageBase(const MessageBase&) = delete;
+		MessageBase &operator=(const MessageBase&) = delete;
 	};
-
-	namespace __Private
-	{
-		static std::size_t _messageID = 0;
-	}
 
 	template <typename T>
 	struct Message : public MessageBase
 	{
 		T _data;
 
+		virtual ~Message()
+		{}
+
 		static std::size_t getId()
 		{
-			static std::size_t id = __Private::_messageID++;
+			static std::size_t id = typeid(T).hash_code();
 			return id;
 		}
 
@@ -40,6 +40,9 @@ namespace TMQ
 			: MessageBase(getId()), _data(args...)
 		{
 		}
+
+		Message &operator=(const Message&) = delete;
+		Message(const Message&) = delete;
 	};
 
 	// Used for messages which return value
@@ -47,6 +50,9 @@ namespace TMQ
 	template <typename T>
 	struct FutureData
 	{
+		virtual ~FutureData()
+		{}
+
 		std::promise<T> result;
 		std::future<T> getFuture()
 		{

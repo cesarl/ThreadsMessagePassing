@@ -23,8 +23,7 @@ namespace TMQ
 		{
 		public:
 			PtrQueue(const PtrQueue &o) = delete;
-			PtrQueue(PtrQueue &&o) = delete;
-			PtrQueue&& operator=(PtrQueue &&o) = delete;
+			PtrQueue& operator=(const PtrQueue &o) = delete;
 
 			PtrQueue(std::size_t chunkSize = 1024)
 				: _chunkSize(chunkSize)
@@ -35,17 +34,34 @@ namespace TMQ
 			{
 			}
 
-			PtrQueue& operator=(const PtrQueue &o)
+
+			PtrQueue& operator=(PtrQueue &&o)
 			{
-				clear();
-				if (_size < o._size)
-					_data = (char*)(realloc(_data, o._size));
-				_chunkSize = o._chunkSize;
-				_data = (char*)memcpy((void*)_data, (void*)o._data, o._size);
-				_cursor = o._cursor;
-				_size = o._size;
-				_to = o._to;
+				std::swap(_data, o._data);
+				_chunkSize = std::move(o._chunkSize);
+				_cursor = std::move(o._cursor);
+				_to = std::move(o._to);
+				std::swap(_size, o._size);
+				o.clear();
+				//if (_size < o._size)
+				//	_data = (char*)(realloc(_data, o._size));
+				//o.clear();
+				//_chunkSize = o._chunkSize;
+				//_data = (char*)memcpy((void*)_data, (void*)o._data, o._size);
+				//_cursor = o._cursor;
+				//_size = o._size;
+				//_to = o._to;
 				return *this;
+			}
+
+			PtrQueue(PtrQueue &&o)
+			{
+				std::swap(_data, o._data);
+				_chunkSize = std::move(o._chunkSize);
+				_cursor = std::move(o._cursor);
+				_to = std::move(o._to);
+				std::swap(_size, o._size);
+				o.clear();
 			}
 
 			~PtrQueue()
@@ -54,10 +70,10 @@ namespace TMQ
 					free(_data);
 			}
 
-			MessageBase *pop()
+			void pop()
 			{
 				if (empty())
-					return nullptr;
+					return;
 
 				char *tmp = _data;
 				std::size_t soi = sizeof(std::size_t);
@@ -66,7 +82,8 @@ namespace TMQ
 				std::size_t s = *reinterpret_cast<std::size_t*>(tmp);
 				_cursor += s + soi;
 				tmp += soi;
-				return ((MessageBase*)(tmp));
+				auto r = reinterpret_cast<MessageBase*>(tmp);
+				r->~MessageBase();
 			}
 
 			MessageBase *front()
@@ -206,15 +223,16 @@ namespace TMQ
 			void getReadableQueue(PtrQueue& q)
 			{
 				std::unique_lock<std::mutex> lock(_mutex);
-				_readCondition.wait(lock, [this](){ return !_copy.empty() || !_priorityCopy.empty(); });
+				if (!_readCondition.wait_for(lock, std::chrono::milliseconds(1), [this](){ return !_copy.empty() || !_priorityCopy.empty(); }))
+					return;//assert(false);
 				if (!_priorityCopy.empty())
 				{
-					q = _priorityCopy;
+					q = std::move(_priorityCopy);
 					_priorityCopy.clear();
 				}
 				else
 				{
-					q = _copy;
+					q = std::move(_copy);
 					_copy.clear();
 				}
 				lock.unlock();
@@ -228,22 +246,23 @@ namespace TMQ
 				std::unique_lock<std::mutex> lock(_mutex);
 				_writeCondition.wait(lock, [this]()
 				{
-					return ((_copy.empty() && !_queue.empty()) || (_priorityCopy.empty() && !_priority.empty()));
+					return (_copy.empty() && _priorityCopy.empty());
 				});
-				if (!_priority.empty())
+				if (!_priority.empty() && _priorityCopy.empty())
 				{
-					_priorityCopy = _priority;
+					_priorityCopy = std::move(_priority);
 					_priority.clear();
 					lock.unlock();
-					_readCondition.notify_one();
 				}
-				else
+				else if (!_queue.empty() && _copy.empty())
 				{
-					_copy = _queue;
+					_copy = std::move(_queue);
 					_queue.clear();
 					lock.unlock();
-					_readCondition.notify_one();
 				}
+				else
+					lock.unlock();
+				_readCondition.notify_one();
 			}
 
 			//////
@@ -351,7 +370,7 @@ namespace TMQ
 					futur = (_priority.emplace<T>(args...))->getFuture();
 				}
 				releaseReadability();
-				return std::forward<std::future<F>>(futur);
+				return futur;
 			}
 		};
 	}

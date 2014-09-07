@@ -25,8 +25,9 @@ namespace TMQ
 				_queue->getReadableQueue(q);
 				while (!q.empty())
 				{
-					auto message = q.pop();
+					auto message = q.front();
 					dispatch(message);
+					q.pop();
 				}
 			}
 
