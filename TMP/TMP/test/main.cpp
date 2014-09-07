@@ -1,8 +1,5 @@
-#include "../src/singleBuffered/templateDispatcher.hpp"
-#include "../src/singleBuffered/receiver.hpp"
-
-#include "../src/doubleBuffered/queue.hpp"
-#include "../src/doubleBuffered/templateDispatcher.hpp"
+#include "../src/queue.hpp"
+#include "../src/templateDispatcher.hpp"
 
 #include <iostream>
 #include <string>
@@ -50,7 +47,7 @@ struct QuatroMessage
 	{}
 };
 
-struct FutureMessage : public TMQ::FutureData<int>
+struct FutureMessage : public TMQ::FutureData < int >
 {};
 
 //class Test
@@ -138,7 +135,7 @@ struct FutureMessage : public TMQ::FutureData<int>
 
 class Test2
 {
-	TMQ::Double::Queue _queue;
+	TMQ::Queue _queue;
 public:
 	void runWorker()
 	{
@@ -230,68 +227,19 @@ public:
 	}
 };
 
-//struct MessageDb1
-//{
-//	int i = 42;
-//	MessageDb1(int _i) : i(_i){}
-//};
-//
-//void DbWorker(TMQ::Double::Queue &queue)
-//{
-//	TMQ::Double::PtrQueue q;
-//	while (true)
-//	{
-//		queue.getReadableQueue(q);
-//		while (!q.empty())
-//		{
-//			auto v = q.pop();
-//			std::cout << ((TMQ::Message<MessageDb1>*)(v))->_data.i << std::endl;
-//		}
-//	}
-//}
-//
-//void DbMain(TMQ::Double::Queue &queue)
-//{
-//	auto ii = 0;
-//	while (ii < 10)
-//	{
-//		for (auto i = 0; i < 10; ++i)
-//		{
-//			queue.emplace<MessageDb1>(ii * 100000 + i);
-//		}
-//		queue.releaseReadability();
-//		++ii;
-//	}
-//}
-
 int main(void)
 {
 	{
-		//auto start = std::chrono::high_resolution_clock::now();
-		//Test test;
-		//std::thread main(&Test::runEmitter, &test);
-		//std::thread worker(&Test::runWorker, &test);
-		//main.join();
-		//worker.join();
-		//auto end = std::chrono::high_resolution_clock::now();
-		//auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-		//std::ofstream a_file("LOG.txt", std::ofstream::app);
-		//a_file << "Duration Single : " << std::to_string(dur.count()) << std::endl;
+		auto start = std::chrono::high_resolution_clock::now();
+		Test2 test;
+		std::thread worker(&Test2::runWorker, &test);
+		std::thread main(&Test2::runEmitter, &test);
+		main.join();
+		worker.join();
+		auto end = std::chrono::high_resolution_clock::now();
+		auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+		std::ofstream a_file("LOG.txt", std::ofstream::app);
+		a_file << "Duration Double : " << std::to_string(dur.count()) << std::endl;
 	}
-
-	//------------------------------
-
-{
-	auto start = std::chrono::high_resolution_clock::now();
-	Test2 test;
-	std::thread worker(&Test2::runWorker, &test);
-	std::thread main(&Test2::runEmitter, &test);
-	main.join();
-	worker.join();
-	auto end = std::chrono::high_resolution_clock::now();
-	auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-	std::ofstream a_file("LOG.txt", std::ofstream::app);
-	a_file << "Duration Double : " << std::to_string(dur.count()) << std::endl;
-}
 	return 0;
 }

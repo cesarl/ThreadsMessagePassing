@@ -6,8 +6,8 @@ namespace TMQ
 {
 	struct MessageBase
 	{
-		virtual ~MessageBase(){}
-		MessageBase(std::size_t _uid) : uid(_uid){}
+		virtual ~MessageBase();
+		MessageBase(std::size_t _uid);
 		std::size_t uid;
 		MessageBase(const MessageBase&) = delete;
 		MessageBase &operator=(const MessageBase&) = delete;
@@ -72,6 +72,7 @@ namespace TMQ
 		}
 	};
 
+	//TODO REMOVE
 	class CloseQueue
 	{
 	};

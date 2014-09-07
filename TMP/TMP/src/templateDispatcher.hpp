@@ -4,14 +4,12 @@
 
 namespace TMQ
 {
-	namespace Single
-	{
 		template <typename _PreviousDispatcher,
 			typename _Message,
 			typename _Function>
 		class TemplateDispatcher
 		{
-			TMQ::Single::Queue* _queue;
+			TMQ::Queue* _queue;
 			_PreviousDispatcher* _previous;
 			_Function _function;
 			bool _chained;
@@ -24,24 +22,27 @@ namespace TMQ
 
 			void waitAndDispatch()
 			{
-				while (true)
+				TMQ::PtrQueue q;
+				_queue->getReadableQueue(q);
+				while (!q.empty())
 				{
-					auto message = _queue->waitAndPop();
-					if (dispatch(message))
-						break;
+					auto message = q.front();
+					auto ret = dispatch(message);
+					q.pop();
+					if (!ret)
+						assert(false);
 				}
 			}
 
-			bool dispatch(const std::shared_ptr<MessageBase>& msg)
+			bool dispatch(MessageBase *msg)
 			{
 				if (msg->uid != Message<_Message>::getId())
 					return _previous->dispatch(msg);
-				_function(static_cast<Message<_Message>*>(msg.get())->_data);
+				_function(static_cast<Message<_Message>*>(msg)->_data);
 				return true;
 			}
 
 		public:
-
 			TemplateDispatcher(TemplateDispatcher&& o)
 				: _queue(o._queue)
 				, _function(o._function)
@@ -50,7 +51,7 @@ namespace TMQ
 				o._chained = true;
 			}
 
-			TemplateDispatcher(TMQ::Single::Queue* queue, _PreviousDispatcher* previous, _Function&& f)
+			TemplateDispatcher(TMQ::Queue* queue, _PreviousDispatcher* previous, _Function&& f)
 				: _queue(queue)
 				, _previous(previous)
 				, _function(std::forward<_Function>(f))
@@ -72,5 +73,4 @@ namespace TMQ
 					waitAndDispatch();
 			}
 		};
-	}
 }

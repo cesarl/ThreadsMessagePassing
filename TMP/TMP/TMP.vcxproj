@@ -133,7 +133,11 @@
     <ClInclude Include="src\templateDispatcher.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\common\message.cpp" />
+    <ClCompile Include="src\dispatcher.cpp" />
     <ClCompile Include="src\doubleBuffered\queue.cpp" />
+    <ClCompile Include="src\message.cpp" />
+    <ClCompile Include="src\queue.cpp" />
     <ClCompile Include="test\main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
