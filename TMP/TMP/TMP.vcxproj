@@ -118,24 +118,14 @@
   <ItemGroup>
     <ClInclude Include="src\common\message.hpp" />
     <ClInclude Include="src\dispatcher.hpp" />
-    <ClInclude Include="src\doubleBuffered\dispatcher.hpp" />
-    <ClInclude Include="src\doubleBuffered\queue.hpp" />
-    <ClInclude Include="src\doubleBuffered\templateDispatcher.hpp" />
     <ClInclude Include="src\message.hpp" />
     <ClInclude Include="src\queue.hpp" />
     <ClInclude Include="src\emitter.hpp" />
     <ClInclude Include="src\receiver.hpp" />
-    <ClInclude Include="src\singleBuffered\dispatcher.hpp" />
-    <ClInclude Include="src\singleBuffered\emitter.hpp" />
-    <ClInclude Include="src\singleBuffered\queue.hpp" />
-    <ClInclude Include="src\singleBuffered\receiver.hpp" />
-    <ClInclude Include="src\singleBuffered\templateDispatcher.hpp" />
     <ClInclude Include="src\templateDispatcher.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\common\message.cpp" />
     <ClCompile Include="src\dispatcher.cpp" />
-    <ClCompile Include="src\doubleBuffered\queue.cpp" />
     <ClCompile Include="src\message.cpp" />
     <ClCompile Include="src\queue.cpp" />
     <ClCompile Include="test\main.cpp" />
