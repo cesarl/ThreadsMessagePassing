@@ -4,7 +4,7 @@
 
 namespace TMQ
 {
-	class MessageBase;
+	struct MessageBase;
 
 	class Dispatcher
 	{

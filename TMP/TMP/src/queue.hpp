@@ -103,6 +103,8 @@ namespace TMQ
 		std::mutex _mutex;
 		std::condition_variable _readCondition;
 		std::condition_variable _writeCondition;
+		std::size_t _publisherThreadId;
+		std::once_flag _onceFlag;
 	public:
 		Queue();
 		void launch();
@@ -124,6 +126,11 @@ namespace TMQ
 		template <typename T>
 		T* push(const T& e)
 		{
+			std::call_once(_onceFlag, [&](){
+				_publisherThreadId = std::this_thread::get_id().hash();
+			});
+			// Assure you that you will not call unprotected functions from different thread	
+			assert(std::this_thread::get_id().hash() == _publisherThreadId);
 			return _queue.push(e);
 		}
 
@@ -132,6 +139,11 @@ namespace TMQ
 		template <typename T, typename ...Args>
 		T* emplace(Args ...args)
 		{
+			std::call_once(_onceFlag, [&](){
+				_publisherThreadId = std::this_thread::get_id().hash();
+			});
+			// Assure you that you will not call unprotected functions from different thread	
+			assert(std::this_thread::get_id().hash() == _publisherThreadId);
 			return _queue.emplace<T>(args...);
 		}
 
@@ -140,6 +152,8 @@ namespace TMQ
 		template <typename T>
 		void safePush(const T& e)
 		{
+			// Assure you that you didn't call unprotected function before
+			assert(std::this_thread::get_id().hash() == 0);
 			std::lock_guard<std::mutex> lock(_mutex);
 			_queue.push(e);
 		}
@@ -149,6 +163,8 @@ namespace TMQ
 		template <typename T, typename ...Args>
 		void safeEmplace(Args ...args)
 		{
+			// Assure you that you didn't call unprotected function before
+			assert(std::this_thread::get_id().hash() == 0);
 			std::lock_guard<std::mutex> lock(_mutex);
 			_queue.emplace<T>(args...);
 		}
@@ -158,6 +174,11 @@ namespace TMQ
 		template <typename T, typename F>
 		std::future<F> pushFuture(const T &e)
 		{
+			std::call_once(_onceFlag, [&](){
+				_publisherThreadId = std::this_thread::get_id().hash();
+			});
+			// Assure you that you will not call unprotected functions from different thread	
+			assert(std::this_thread::get_id().hash() == _publisherThreadId);
 			return _queue.push(e)->getFuture();
 		}
 
@@ -166,17 +187,96 @@ namespace TMQ
 		template <typename T, typename F, typename ...Args>
 		std::future<F> emplaceFuture(Args ...args)
 		{
+			std::call_once(_onceFlag, [&](){
+				_publisherThreadId = std::this_thread::get_id().hash();
+			});
+			// Assure you that you will not call unprotected functions from different thread	
+			assert(std::this_thread::get_id().hash() == _publisherThreadId);
+			return _queue.emplace<T>(args...)->getFuture();
+		}
+
+		//Push in queue and return future
+		//Message data have to heritate from FutureData
+		template <typename T, typename F>
+		std::future<F> safePushFuture(const T &e)
+		{
+			// Assure you that you didn't call unprotected function before
+			assert(std::this_thread::get_id().hash() == 0);
+			std::lock_guard<std::mutex> lock(_mutex);			
+			return _queue.push(e)->getFuture();
+		}
+
+		//Emplace in queue and return future
+		//Message data have to heritate from FutureData
+		template <typename T, typename F, typename ...Args>
+		std::future<F> safeEmplaceFuture(Args ...args)
+		{
+			// Assure you that you didn't call unprotected function before
+			assert(std::this_thread::get_id().hash() == 0);
+			std::lock_guard<std::mutex> lock(_mutex);
 			return _queue.emplace<T>(args...)->getFuture();
 		}
 
 		//////
 		////// Internal priority queue access
 
-		//Lock mutex
-		//Can be called simutanously in different threads
 		template <typename T>
 		void priorityPush(const T& e)
 		{
+			std::call_once(_onceFlag, [&](){
+				_publisherThreadId = std::this_thread::get_id().hash();
+			});
+			// Assure you that you will not call unprotected functions from different thread	
+			assert(std::this_thread::get_id().hash() == _publisherThreadId);
+			_queue.push(e);
+			releaseReadability();
+		}
+
+		template <typename T, typename ...Args>
+		void priorityEmplace(Args ...args)
+		{
+			std::call_once(_onceFlag, [&](){
+				_publisherThreadId = std::this_thread::get_id().hash();
+			});
+			// Assure you that you will not call unprotected functions from different thread	
+			assert(std::this_thread::get_id().hash() == _publisherThreadId);
+			_queue.emplace<T>(args...);
+			releaseReadability();
+		}
+
+		template <typename T, typename F>
+		std::future<F> priorityFuturePush(const T &e)
+		{
+			std::call_once(_onceFlag, [&](){
+				_publisherThreadId = std::this_thread::get_id().hash();
+			});
+			// Assure you that you will not call unprotected functions from different thread	
+			assert(std::this_thread::get_id().hash() == _publisherThreadId);
+			std::future<F> futur;
+			futur = _priority.push(e)->getFuture();
+			releaseReadability();
+			return futur;
+		}
+
+		template <typename T, typename F, typename ...Args>
+		std::future<F> priorityFutureEmplace(Args ...args)
+		{
+			std::call_once(_onceFlag, [&](){
+				_publisherThreadId = std::this_thread::get_id().hash();
+			});
+			// Assure you that you will not call unprotected functions from different thread	
+			assert(std::this_thread::get_id().hash() == _publisherThreadId);
+			std::future<F> futur;
+			futur = (_priority.emplace<T>(args...))->getFuture();
+			releaseReadability();
+			return futur;
+		}
+
+		template <typename T>
+		void safePriorityPush(const T& e)
+		{
+			// Assure you that you didn't call unprotected function before
+			assert(std::this_thread::get_id().hash() == 0);
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
 				_queue.push(e);
@@ -184,11 +284,11 @@ namespace TMQ
 			releaseReadability();
 		}
 
-		//Lock mutex
-		//Can be called simutanously in different thre
 		template <typename T, typename ...Args>
-		void priorityEmplace(Args ...args)
+		void safePriorityEmplace(Args ...args)
 		{
+			// Assure you that you didn't call unprotected function before
+			assert(std::this_thread::get_id().hash() == 0);
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
 				_queue.emplace<T>(args...);
@@ -196,11 +296,11 @@ namespace TMQ
 			releaseReadability();
 		}
 
-		//Push in queue and return future
-		//Message data have to heritate from FutureData
 		template <typename T, typename F>
-		std::future<F> priorityFuturePush(const T &e)
+		std::future<F> safePriorityFuturePush(const T &e)
 		{
+			// Assure you that you didn't call unprotected function before
+			assert(std::this_thread::get_id().hash() == 0);
 			std::future<F> futur;
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
@@ -210,11 +310,11 @@ namespace TMQ
 			return futur;
 		}
 
-		//Emplace in queue and return future
-		//Message data have to heritate from FutureData
 		template <typename T, typename F, typename ...Args>
-		std::future<F> priorityFutureEmplace(Args ...args)
+		std::future<F> safePriorityFutureEmplace(Args ...args)
 		{
+			// Assure you that you didn't call unprotected function before
+			assert(std::this_thread::get_id().hash() == 0);
 			std::future<F> futur;
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
@@ -223,5 +323,6 @@ namespace TMQ
 			releaseReadability();
 			return futur;
 		}
+
 	};
 }

@@ -103,6 +103,7 @@ Dispatcher Queue::getDispatcher()
 
 
 Queue::Queue()
+	: _publisherThreadId(0)
 {
 }
 
