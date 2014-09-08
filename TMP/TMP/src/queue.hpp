@@ -156,7 +156,7 @@ namespace TMQ
 		//Push in queue and return future
 		//Message data have to heritate from FutureData
 		template <typename T, typename F>
-		std::future<F> push(const T &e)
+		std::future<F> pushFuture(const T &e)
 		{
 			return _queue.push(e)->getFuture();
 		}
@@ -164,9 +164,9 @@ namespace TMQ
 		//Emplace in queue and return future
 		//Message data have to heritate from FutureData
 		template <typename T, typename F, typename ...Args>
-		std::future<F> emplace(Args ...args)
+		std::future<F> emplaceFuture(Args ...args)
 		{
-			return std::forward<std::future<F>>(_queue.emplace<T>(args...)->getFuture());
+			return _queue.emplace<T>(args...)->getFuture();
 		}
 
 		//////
@@ -199,7 +199,7 @@ namespace TMQ
 		//Push in queue and return future
 		//Message data have to heritate from FutureData
 		template <typename T, typename F>
-		std::future<F> priorityPush(const T &e)
+		std::future<F> priorityFuturePush(const T &e)
 		{
 			std::future<F> futur;
 			{
@@ -213,7 +213,7 @@ namespace TMQ
 		//Emplace in queue and return future
 		//Message data have to heritate from FutureData
 		template <typename T, typename F, typename ...Args>
-		std::future<F> priorityEmplace(Args ...args)
+		std::future<F> priorityFutureEmplace(Args ...args)
 		{
 			std::future<F> futur;
 			{

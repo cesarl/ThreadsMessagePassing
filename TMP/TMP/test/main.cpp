@@ -6,134 +6,33 @@
 #include <thread>
 #include <fstream>
 
-enum OperationType
+struct StringMessage
 {
-};
-
-struct DuoMessage
-{
-	int a;
-	int b;
-
-	DuoMessage(int _a, int _b)
-		: a(_a), b(_b)
+	std::string data;
+	StringMessage(const std::string &_data)
+		: data(_data)
 	{}
 };
 
-struct TrioMessage
+struct IntMessage
 {
-	int a;
-	int b;
-	int c;
-	int d : 4;
-	int e : 3;
-	int f : 2;
-	bool g;
-
-	TrioMessage(int _a, int _b, int _c)
-		: a(_a), b(_b), c(_c)
+	int data;
+	IntMessage(int _data)
+		: data(_data)
 	{}
 };
 
-struct QuatroMessage
+struct FutureString : public TMQ::FutureData < std::string >, StringMessage
 {
-	int a;
-	int b;
-	int c;
-	int d;
-
-	QuatroMessage(int _a, int _b, int _c, int _d)
-		: a(_a), b(_b), c(_c), d(_d)
+	FutureString(const std::string &_data)
+		: StringMessage(_data)
 	{}
 };
 
-struct FutureMessage : public TMQ::FutureData < int >
+struct FutureInt : public TMQ::FutureData < int >, IntMessage
 {};
 
-//class Test
-//{
-//	TMQ::Single::Receiver _worker;
-//	TMQ::Single::Emitter _emitter;
-//
-//public:
-//	void runWorker()
-//	{
-//		bool run = true;
-//		auto counter = 0;
-//		std::ofstream a_file("TEST.txt");
-//		while (run)
-//		{
-//			auto res = 0;
-//			_worker.getDispatcher()
-//				.handle<DuoMessage>([&](const DuoMessage& msg)
-//			{
-//				res = msg.a * msg.b;
-//				a_file << res << ", ";
-//				counter++;
-//			})
-//				.handle<TrioMessage>([&](const TrioMessage& msg)
-//			{
-//				res = msg.a * msg.b * msg.c;
-//				a_file << res << ", ";
-//				counter++;
-//			})
-//				.handle<QuatroMessage>([&](const QuatroMessage& msg)
-//			{
-//				res = msg.a * msg.b * msg.c * msg.d;
-//				a_file << res << ", ";
-//				counter++;
-//			})
-//				.handle<TMQ::CloseQueue>([&](const TMQ::CloseQueue& msg)
-//			{
-//				run = false;
-//			});
-//		}
-//		std::cout << counter << std::endl;
-//	}
-//
-//	void runEmitter()
-//	{
-//		std::srand(42);
-//		for (auto i = 0; i < 1000; ++i)
-//		{
-//			for (auto j = 0; j < 1000; ++j)
-//			{
-//				auto res = rand();
-//				if (i % 2)
-//				{
-//					_emitter.send(DuoMessage(res, rand()));
-//				}
-//				else if (i % 3)
-//				{
-//
-//					_emitter.send(TrioMessage(res, rand(), rand()));
-//				}
-//				else
-//				{
-//					_emitter.send(QuatroMessage(res, rand(), rand(), rand()));
-//				}
-//			}
-//		}
-//		done();
-//	}
-//
-//	Test()
-//	{
-//		_emitter = _worker.operator TMQ::Single::Emitter();
-//	}
-//
-//	void done()
-//	{
-//		_emitter.send(TMQ::CloseQueue());
-//	}
-//
-//	~Test()
-//	{
-//		done();
-//	}
-//};
-
-class Test2
+class Test
 {
 	TMQ::Queue _queue;
 public:
@@ -146,28 +45,25 @@ public:
 		{
 			int res = 0;
 			_queue.getDispatcher()
-				.handle<DuoMessage>([&](const DuoMessage& msg)
+				.handle<StringMessage>([&](const StringMessage& msg)
 			{
-				res = msg.a * msg.b;
-				a_file << res << ", ";
+				a_file << "String message : " << msg.data << std::endl;
 				counter++;
 			})
-				.handle<TrioMessage>([&](const TrioMessage& msg)
+				.handle<IntMessage>([&](const IntMessage& msg)
 			{
-				res = msg.a * msg.b * msg.c;
-				a_file << res << ", ";
+				a_file << "Int message : " << msg.data << std::endl;
 				counter++;
 			})
-				.handle<QuatroMessage>([&](const QuatroMessage& msg)
-			{
-				res = msg.a * msg.b * msg.c * msg.d;
-				a_file << res << ", ";
-				counter++;
-			})
-				.handle<FutureMessage>([&](FutureMessage& msg)
+				.handle<FutureInt>([&](FutureInt& msg)
 			{
 				msg.result.set_value(42);
-				a_file << std::endl << "Treating future" << std::endl;
+				a_file << "Treating future int" << std::endl;
+			})
+				.handle<FutureString>([&](FutureString& msg)
+			{
+				a_file << "Treating future string : " << msg.data << std::endl;
+				msg.result.set_value("Threated ! : " + msg.data);
 			})
 				.handle<TMQ::CloseQueue>([&](const TMQ::CloseQueue& msg)
 			{
@@ -181,37 +77,22 @@ public:
 	{
 		_queue.launch();
 		std::srand(42);
-		for (auto i = 0; i < 100; ++i)
+		for (auto i = 0; i < 10; ++i)
 		{
 			for (auto j = 0; j < 10; ++j)
 			{
-				auto res = rand();
-				if (i % 2)
-				{
-					_queue.emplace<DuoMessage>(res, rand());
-				}
-				else if (i % 3)
-				{
-					_queue.emplace<TrioMessage>(res, rand(), rand());
-				}
-				else
-				{
-					_queue.emplace<QuatroMessage>(res, rand(), rand(), rand());
-				}
-
-				if (j % 3 == 0)
-				{
-					auto futureInt = _queue.priorityEmplace<FutureMessage, int>();
-					//auto v = futureInt.get();
-					//std::cout << "Priority with future when i = " << i << " and j = " << j << " is : " << v << std::endl;
-				}
+				_queue.emplace<StringMessage>("String message A [" + std::to_string(i) + "][" + std::to_string(j) + "]\n");
+				_queue.emplace<StringMessage>("String message B [" + std::to_string(i) + "][" + std::to_string(j) + "]\n");
+				_queue.emplace<StringMessage>("String message C [" + std::to_string(i) + "][" + std::to_string(j) + "]\n");
+				auto future1 = _queue.emplaceFuture<FutureString, std::string>(" Future String message [" + std::to_string(i) + "][" + std::to_string(j) + "]\n");
+				auto future2 = _queue.priorityFutureEmplace<FutureString, std::string>(" Priority future String message [" + std::to_string(i) + "][" + std::to_string(j) + "]\n");
 			}
 			_queue.releaseReadability();
 		}
 		done();
 	}
 
-	Test2()
+	Test()
 	{
 	}
 
@@ -221,7 +102,7 @@ public:
 		_queue.releaseReadability();
 	}
 
-	~Test2()
+	~Test()
 	{
 		done();
 	}
@@ -231,9 +112,9 @@ int main(void)
 {
 	{
 		auto start = std::chrono::high_resolution_clock::now();
-		Test2 test;
-		std::thread worker(&Test2::runWorker, &test);
-		std::thread main(&Test2::runEmitter, &test);
+		Test test;
+		std::thread worker(&Test::runWorker, &test);
+		std::thread main(&Test::runEmitter, &test);
 		main.join();
 		worker.join();
 		auto end = std::chrono::high_resolution_clock::now();
