@@ -153,7 +153,7 @@ namespace TMQ
 		void safePush(const T& e)
 		{
 			// Assure you that you didn't call unprotected function before
-			assert(std::this_thread::get_id().hash() == 0);
+			assert(_publisherThreadId == 0);
 			std::lock_guard<std::mutex> lock(_mutex);
 			_queue.push(e);
 		}
@@ -164,7 +164,7 @@ namespace TMQ
 		void safeEmplace(Args ...args)
 		{
 			// Assure you that you didn't call unprotected function before
-			assert(std::this_thread::get_id().hash() == 0);
+			assert(_publisherThreadId == 0);
 			std::lock_guard<std::mutex> lock(_mutex);
 			_queue.emplace<T>(args...);
 		}
@@ -201,7 +201,7 @@ namespace TMQ
 		std::future<F> safePushFuture(const T &e)
 		{
 			// Assure you that you didn't call unprotected function before
-			assert(std::this_thread::get_id().hash() == 0);
+			assert(_publisherThreadId == 0);
 			std::lock_guard<std::mutex> lock(_mutex);			
 			return _queue.push(e)->getFuture();
 		}
@@ -212,7 +212,7 @@ namespace TMQ
 		std::future<F> safeEmplaceFuture(Args ...args)
 		{
 			// Assure you that you didn't call unprotected function before
-			assert(std::this_thread::get_id().hash() == 0);
+			assert(_publisherThreadId == 0);
 			std::lock_guard<std::mutex> lock(_mutex);
 			return _queue.emplace<T>(args...)->getFuture();
 		}
@@ -276,7 +276,7 @@ namespace TMQ
 		void safePriorityPush(const T& e)
 		{
 			// Assure you that you didn't call unprotected function before
-			assert(std::this_thread::get_id().hash() == 0);
+			assert(_publisherThreadId == 0);
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
 				_queue.push(e);
@@ -288,7 +288,7 @@ namespace TMQ
 		void safePriorityEmplace(Args ...args)
 		{
 			// Assure you that you didn't call unprotected function before
-			assert(std::this_thread::get_id().hash() == 0);
+			assert(_publisherThreadId == 0);
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
 				_queue.emplace<T>(args...);
@@ -300,7 +300,7 @@ namespace TMQ
 		std::future<F> safePriorityFuturePush(const T &e)
 		{
 			// Assure you that you didn't call unprotected function before
-			assert(std::this_thread::get_id().hash() == 0);
+			assert(_publisherThreadId == 0);
 			std::future<F> futur;
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
@@ -314,7 +314,7 @@ namespace TMQ
 		std::future<F> safePriorityFutureEmplace(Args ...args)
 		{
 			// Assure you that you didn't call unprotected function before
-			assert(std::this_thread::get_id().hash() == 0);
+			assert(_publisherThreadId == 0);
 			std::future<F> futur;
 			{
 				std::lock_guard<std::mutex> lock(_mutex);
