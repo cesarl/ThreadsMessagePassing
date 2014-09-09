@@ -105,7 +105,7 @@ namespace TMQ
 		std::condition_variable _writeCondition;
 		std::size_t _publisherThreadId;
 		std::once_flag _onceFlag;
-		std::atomic_size_t _millisecondToWait;
+		std::size_t _millisecondToWait;
 	public:
 		Queue();
 		void launch();
@@ -119,7 +119,7 @@ namespace TMQ
 		Dispatcher getDispatcher();
 		void releaseReadability();
 		void setWaitingTime(std::size_t milliseconds);
-		std::size_t getWaitingTime() const;
+		std::size_t getWaitingTime();
 
 		//////
 		////// Internal standard queue access
