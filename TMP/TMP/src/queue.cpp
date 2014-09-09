@@ -104,6 +104,7 @@ Dispatcher Queue::getDispatcher()
 
 Queue::Queue()
 	: _publisherThreadId(0)
+	, _millisecondToWait(10)
 {
 }
 
@@ -115,8 +116,8 @@ void Queue::launch()
 void Queue::getReadableQueue(PtrQueue& q)
 {
 	std::unique_lock<std::mutex> lock(_mutex);
-	if (!_readCondition.wait_for(lock, std::chrono::milliseconds(1), [this](){ return !_copy.empty() || !_priorityCopy.empty(); }))
-		return;//assert(false);
+	if (!_readCondition.wait_for(lock, std::chrono::milliseconds(_millisecondToWait), [this](){ return !_copy.empty() || !_priorityCopy.empty(); }))
+		return;
 	if (!_priorityCopy.empty())
 	{
 		q = std::move(_priorityCopy);
@@ -153,4 +154,14 @@ void Queue::releaseReadability()
 	else
 		lock.unlock();
 	_readCondition.notify_one();
+}
+
+void Queue::setWaitingTime(std::size_t milliseconds)
+{
+	_millisecondToWait = milliseconds;
+}
+
+std::size_t Queue::getWaitingTime() const
+{
+	return _millisecondToWait;
 }

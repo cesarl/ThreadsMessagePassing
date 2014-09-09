@@ -105,6 +105,7 @@ namespace TMQ
 		std::condition_variable _writeCondition;
 		std::size_t _publisherThreadId;
 		std::once_flag _onceFlag;
+		std::atomic_size_t _millisecondToWait;
 	public:
 		Queue();
 		void launch();
@@ -117,6 +118,8 @@ namespace TMQ
 		void getReadableQueue(PtrQueue& q);
 		Dispatcher getDispatcher();
 		void releaseReadability();
+		void setWaitingTime(std::size_t milliseconds);
+		std::size_t getWaitingTime() const;
 
 		//////
 		////// Internal standard queue access
@@ -159,7 +162,7 @@ namespace TMQ
 		}
 
 		//Lock mutex
-		//Can be called simutanously in different thre
+		//Can be called simutanously in different threads
 		template <typename T, typename ...Args>
 		void safeEmplace(Args ...args)
 		{
